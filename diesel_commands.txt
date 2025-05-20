@@ -1,0 +1,10 @@
+# Setup
+diesel setup
+# Create a new migration
+diesel migration generate <migration_name>
+# Run the migration
+diesel migration run
+# Rollback the last migration
+diesel migration revert
+# Redo the last migration
+diesel migration revert
