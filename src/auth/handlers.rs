@@ -6,11 +6,16 @@ use axum::{
     response::IntoResponse,
 };
 use bcrypt::{verify, DEFAULT_COST};
+use validator::Validate;
 
 pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    if let Err(validation_errors) = payload.validate() {
+        return Err(AppError::Validation(validation_errors));
+    }
+    
     let LoginRequest { email, password } = payload;
 
     let mut conn = state
@@ -43,6 +48,10 @@ pub async fn register(
     State(state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<impl IntoResponse, AppError> {
+    if let Err(validation_errors) = payload.validate() {
+        return Err(AppError::Validation(validation_errors));
+    }
+    
     let RegisterRequest {
         first_name,
         last_name,
