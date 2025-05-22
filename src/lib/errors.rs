@@ -1,11 +1,8 @@
 use axum::http::StatusCode;
 use axum::Json;
-use axum::response::IntoResponse;
-
-#[derive(serde::Serialize)]
-pub struct ErrorResponse {
-    pub message: String,
-}
+use axum::response::{IntoResponse, Response};
+use serde::Serialize;
+use validator::ValidationErrors;
 
 #[derive(Debug)]
 pub enum AppError {
@@ -15,38 +12,65 @@ pub enum AppError {
     Conflict(String),
     Unauthorized(String),
     Forbidden(String),
+    Validation(ValidationErrors)
+}
+
+#[derive(serde::Serialize)]
+pub struct ErrorResponse {
+    pub message: String,
+}
+
+#[derive(Serialize)]
+pub struct ValidationErrorResponse {
+    pub message: String,
+    pub errors: ValidationErrors,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum ErrorBody {
+    Message { message: String },
+    ValidationWithMessage(ValidationErrorResponse),
 }
 
 impl IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        let (status_code, message) = match self {
+    fn into_response(self) -> Response {
+        let (status_code, error_body) = match self {
             AppError::InternalServerError(msg) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                msg.unwrap_or_else(|| "Something went wrong".to_string()),
+                ErrorBody::Message {
+                    message: msg.unwrap_or_else(|| "Something went wrong".to_string()),
+                },
             ),
             AppError::BadRequest(msg) => (
                 StatusCode::BAD_REQUEST,
-                msg,
+                ErrorBody::Message { message: msg },
             ),
             AppError::NotFound(msg) => (
                 StatusCode::NOT_FOUND,
-                msg,
+                ErrorBody::Message { message: msg },
             ),
             AppError::Conflict(msg) => (
                 StatusCode::CONFLICT,
-                msg,
+                ErrorBody::Message { message: msg },
             ),
             AppError::Unauthorized(msg) => (
                 StatusCode::UNAUTHORIZED,
-                msg,
+                ErrorBody::Message { message: msg },
             ),
             AppError::Forbidden(msg) => (
                 StatusCode::FORBIDDEN,
-                msg,
+                ErrorBody::Message { message: msg },
+            ),
+            AppError::Validation(errors) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                ErrorBody::ValidationWithMessage(ValidationErrorResponse {
+                    message: "Validation failed".to_string(),
+                    errors,
+                }),
             ),
         };
 
-        let error_body = Json(ErrorResponse { message });
-        (status_code, error_body).into_response()
+        (status_code, Json(error_body)).into_response()
     }
 }
