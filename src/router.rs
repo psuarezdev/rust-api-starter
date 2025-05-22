@@ -10,13 +10,14 @@ pub fn create_router() -> Router {
     // let environment = env::var("APP_ENV").unwrap_or_else(|_| "production".into());
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let jwt_secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let api_version = env::var("API_VERSION").expect("API_VERSION must be set");
 
-    let db_pool = db::create_pool(&database_url);
-    
+    let db_pool = db::create_pool(&database_url);    
     let app_state = state::AppState { db_pool, jwt_secret };
+    let api_prefix = format!("/api/{}", api_version);
 
     Router::new()
-        .nest("/api/auth", create_auth_router())
+        .nest(&format!("{}/auth", api_prefix), create_auth_router())
         .with_state(app_state)
     /*if environment == "production" {
         let frontend_serve_dir =
