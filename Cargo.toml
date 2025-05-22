@@ -9,7 +9,6 @@ chrono = { version = "0.4", features = ["serde"] }
 diesel = { version = "2.2.4", features = ["postgres", "r2d2", "chrono", "serde_json"] }
 r2d2 = "0.8.10"
 dotenvy = "0.15.7"
-futures-util = "0.3.31"
 bcrypt = "0.17.0"
 jsonwebtoken = "9"
 serde = { version = "1.0", features = ["derive"] }
@@ -17,8 +16,6 @@ serde_json = "1.0"
 tokio = { version = "1.0", features = ["full"] }
 tokio-tungstenite = { version = "0.26.2", features = ["native-tls"] }
 tower-http = { version = "0.6.1", features = ["cors", "fs"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1.10.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
 validator = { version = "0.20.0", features = ["derive"] }
 tracing = "0.1"
