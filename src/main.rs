@@ -1,18 +1,29 @@
+use dotenvy::dotenv;
+use std::env;
+use std::net::SocketAddr;
+use tower_http::cors::{Any, CorsLayer};
+use tracing::{info, Level};
+use tracing_subscriber::{FmtSubscriber, EnvFilter};
+use axum::{http::Request, middleware::Next, response::Response};
+use axum::body::Body;
+
 pub mod router;
 pub mod schema;
 pub mod users;
 pub mod auth;
 pub mod lib;
 
-use dotenvy::dotenv;
-use std::env;
-use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
-
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    tracing_subscriber::fmt::init();
+    
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE) // Set log level to TRACE for more detailed logs
+        .with_env_filter(EnvFilter::new("axum=trace")) // Add axum logging filter
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     println!("{}", env::var("APP_ENV").unwrap_or_default());
 
     let cors: CorsLayer = CorsLayer::new()
@@ -32,9 +43,20 @@ async fn main() {
         ]);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 4000));
-    let app = router::create_router().layer(cors);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
-    println!("Server running on {}", addr);
+    let app = router::create_router()
+        .layer(cors)
+        .layer(axum::middleware::from_fn(log_requests));
+
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    println!("Server running on http://{}", addr);
+
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn log_requests(req: Request<Body>, next: Next) -> Response {
+    info!("Received request: {} {}", req.method(), req.uri());
+    let response = next.run(req).await;
+    info!("Response with status: {}", response.status());
+    response
 }
